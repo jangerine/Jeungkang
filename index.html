@@ -170,7 +170,7 @@ function dest(pc,r){const o=G.pl[pc.o];if(has(o,'rev'))r=-r;if(o.ld&&r>0)r*=2;re
 const foes=(pi,d)=>G.pl.flatMap((p,j)=>j==pi?[]:p.pcs.filter(q=>!q.done&&nd(q)==d));
 const nxt=i=>{let j=i;do j=(j+1)%G.pl.length;while(G.pl[j].out&&j!=i);return j};
 const QP=[1,2,3,4,5,20,21,22],SYM={v:'선',d:'도',p:'폰',m:'마',g:'김',q:'后',c:'포',z:'광'};
-function elim(j){const p=G.pl[j];p.out=1;p.eo=(G.eo=(G.eo||0)+1);p.pcs.forEach(q=>q.path=[]);log(`${p.name} 탈락!`);const al=G.pl.filter(x=>!x.out);if(al.length==1)win(G.pl.indexOf(al[0]))}
+function elim(j){const p=G.pl[j];p.out=1;p.eo=(G.eo=(G.eo||0)+1);p.pcs.forEach(q=>q.path=[]);log(`${p.name} 탈락!`);const al=G.pl.filter(x=>!x.out);if(al.length==1)win(G.pl.indexOf(al[0]),'다른 플레이어가 모두 탈락했습니다!')}
 function conv(me,k){const q=me.pcs.find(q=>!q.done&&!q.k&&nd(q)<0)||me.pcs.find(q=>!q.done&&!q.k);if(q)q.k=k;return q}
 const LN=[[0,1,2,3,4,5],[5,6,7,8,9,10],[10,11,12,13,14,15],[15,16,17,18,19,0],[5,20,21,22,23,24,15],[10,25,26,22,27,28,0]];
 const occ=n=>G.pl.some(p=>p.pcs.some(q=>!q.done&&nd(q)==n));
@@ -231,10 +231,10 @@ function party(pc,g,d){
 function move(pc,r,to){
  const me=G.pl[pc.o],g=grp(pc),np=to!=null?(to==99?{done:1}:{path:[...pc.path,to]}):dest(pc,r);
  g.forEach(q=>{if(np.done){q.done=1;q.path=[]}else q.path=[...np.path]});
- if(np.done){log(`${me.name}: 말 ${g.length}개 완주!`);if(g.some(q=>q.k=='m'||q.k=='g'))win(pc.o);if(me.ql)me.ql++}
+ if(np.done){log(`${me.name}: 말 ${g.length}개 완주!`);if(g.some(q=>q.k=='m'||q.k=='g'))win(pc.o,g.some(q=>q.k=='m')?'변환: 마라토너가 완주했습니다!':'김첨지가 6차례 안에 완주했습니다!');if(me.ql)me.ql++}
  else{
   const d=nd(pc),gi=me.garlic?me.garlic.indexOf(d):-1;
-  if(gi>=0){me.garlic.splice(gi,1);log('🧄 마늘 획득!');if(!me.garlic.length)win(pc.o)}
+  if(gi>=0){me.garlic.splice(gi,1);log('🧄 마늘 획득!');if(!me.garlic.length)win(pc.o,'웅녀: 마늘 3개를 모두 모았습니다!')}
   if(G.poop.some(p=>p.n==d&&p.o!=pc.o)){log('💩 똥을 밟아 멈췄습니다!');G.poop=G.poop.filter(p=>!(p.n==d&&p.o!=pc.o))}
   G.pl.forEach((en,j)=>{
   const foe=d<=0||(j==pc.o&&!has(me,'cann'))?[]:en.pcs.filter(q=>!q.done&&nd(q)==d&&!g.includes(q));
@@ -255,15 +255,15 @@ function move(pc,r,to){
 function checkWin(){
  G.pl.forEach((p,i)=>{if(p.dom&&!p.out&&!G.over&&p.dom.pcs.some(q=>!q.done&&!q.path.length)){const d=p.dom;p.dom=null;d.pcs.forEach(q=>q.fz=0);log(`${p.name}: 영역 전개 실패… 탈락!`);elim(i)}});
  const gs=G.pl.flatMap((p,j)=>p.pcs.filter(q=>!q.done&&nd(q)>0&&grp(q)[0]===q).map(()=>j));if(gs.length>1)G.multi=1;
- G.pl.forEach((p,i)=>{if(!G.over&&!p.out&&has(p,'solo')&&G.multi&&gs.length==1&&gs[0]==i)win(i)});
+ G.pl.forEach((p,i)=>{if(!G.over&&!p.out&&has(p,'solo')&&G.multi&&gs.length==1&&gs[0]==i)win(i,'천상천하 유아독존: 판 위에 말뭉치가 나 하나뿐입니다!')});
  if(G.duel&&!G.over&&G.pl[G.duel.t].pcs.filter(q=>q.done).length>G.duel.d){const d=G.duel;G.duel=null;log('승부다! 지목된 플레이어가 완주해 신청자가 탈락합니다.');elim(d.o)}
  G.pl.forEach((p,i)=>{
   if(G.over)return;
-  if(!p.out&&(p.pcs.every(q=>q.done)||(has(p,'purge')&&p.kills>=3)||(has(p,'cow')&&p.back>=2)))win(i);
-  if(!G.over&&!p.out&&((has(p,'lover')&&G.pl.some(q=>has(q,'cat')))||(has(p,'lone')&&p.by&&G.pl.every((q,j)=>j==i||p.by.includes(j)))||(has(p,'sa')&&(Object.values(p.pcs.filter(q=>!q.done&&nd(q)>0).reduce((o,q)=>(o[nd(q)]=(o[nd(q)]||0)+1,o),{})).some(c=>c>=4)||LN.some(L=>L.some((_,k)=>k<L.length-3&&L.slice(k,k+4).every(m=>m&&p.pcs.some(q=>!q.done&&nd(q)==m))))))))win(i);
+  {const w=!p.out&&(p.pcs.every(q=>q.done)?'말을 모두 완주시켰습니다!':has(p,'purge')&&p.kills>=3?'무신정변: 적 말을 3개 이상 죽였습니다!':has(p,'cow')&&p.back>=2?'소 뒷걸음질: 백도로 말을 2번 잡았습니다!':0);if(w)win(i,w)}
+  if(!G.over&&!p.out&&((has(p,'lover')&&G.pl.some(q=>has(q,'cat')))||(has(p,'lone')&&p.by&&G.pl.every((q,j)=>j==i||p.by.includes(j)))||(has(p,'sa')&&(Object.values(p.pcs.filter(q=>!q.done&&nd(q)>0).reduce((o,q)=>(o[nd(q)]=(o[nd(q)]||0)+1,o),{})).some(c=>c>=4)||LN.some(L=>L.some((_,k)=>k<L.length-3&&L.slice(k,k+4).every(m=>m&&p.pcs.some(q=>!q.done&&nd(q)==m))))))))win(i,has(p,'lover')&&G.pl.some(q=>has(q,'cat'))?'애묘인: 고양이를 선택한 플레이어가 있습니다!':has(p,'lone')&&p.by&&G.pl.every((q,j)=>j==i||p.by.includes(j))?'나만 친구 없어: 다른 모든 플레이어가 내 말을 잡았습니다!':'사목: 일직선 네 칸(또는 네 말 업기)을 차지했습니다!');
  });
 }
-function win(i){const c=G.pl.find(p=>p.ch.cxl);if(c){c.ch.cxl=0;log(`${c.name}: 취~소! 승리가 취소되었습니다.`);return}const R=ranks(i),m=G.pl.findIndex(p=>p.plan&&!p.out&&p.plan.every((x,r)=>R[r]==x));G.over=1;if(m>=0){G.win=m;G.ws=[m];G.pm=1;log('📋 계획대로!')}else{G.win=i;G.ws=[i,...G.pl.flatMap((p,j)=>j!=i&&p.ally==i?[j]:[])];G.rk=R}}
+function win(i,w){const c=G.pl.find(p=>p.ch.cxl);if(c){c.ch.cxl=0;log(`${c.name}: 취~소! 승리가 취소되었습니다.`);return}const R=ranks(i),m=G.pl.findIndex(p=>p.plan&&!p.out&&p.plan.every((x,r)=>R[r]==x));G.over=1;G.why=m>=0?'계획대로: 최종 순위를 모두 맞췄습니다!':w||'';if(m>=0){G.win=m;G.ws=[m];G.pm=1;log('📋 계획대로!')}else{G.win=i;G.ws=[i,...G.pl.flatMap((p,j)=>j!=i&&p.ally==i?[j]:[])];G.rk=R}}
 
 function facesFor(r){
  if(r==5)return[0,0,0,0];
@@ -299,7 +299,7 @@ function doThrow(force){
  if(force)r=force;
  else if(has(me,'moor'))r=Math.random()<.5?1:5;
  else if(has(me,'dog'))r=Math.random()<.5?1:2;
- else if(has(me,'over')){fc=[1,2,3,4,5,6].map(()=>Math.random()<.5);const f=fc.filter(x=>x).length;if(f==6){G.last={id:(G.tc=(G.tc||0)+1),f:fc,r:0,who:me.name};log(`${me.name}: 윷 6개 모두 앞면… 탈락!`);me.out=1;const al=G.pl.filter(p=>!p.out);if(al.length==1)win(G.pl.indexOf(al[0]));else endTurn();return}r=f%5==0?5:f}
+ else if(has(me,'over')){fc=[1,2,3,4,5,6].map(()=>Math.random()<.5);const f=fc.filter(x=>x).length;if(f==6){G.last={id:(G.tc=(G.tc||0)+1),f:fc,r:0,who:me.name};log(`${me.name}: 윷 6개 모두 앞면… 탈락!`);me.out=1;const al=G.pl.filter(p=>!p.out);if(al.length==1)win(G.pl.indexOf(al[0]),'다른 플레이어가 모두 탈락했습니다!');else endTurn();return}r=f%5==0?5:f}
  else{
   const s=[0,0,0,0].map(()=>Math.random()<.55),f=s.filter(x=>x).length;
   r=f==0?5:(f==1&&s[0]?-1:f);fc=s;
@@ -315,10 +315,10 @@ function doThrow(force){
  if(has(me,'dual')&&!force){const s2=[0,0,0,0].map(()=>Math.random()<.55),f2=s2.filter(x=>x).length;let r2=f2==0?5:(f2==1&&s2[0]?-1:f2);if(r2==5)r2=1;G.pend.push(r2);if(r2>=4)G.throws++}
  log(`${me.name}: ${RN[r]}`);
  if(!me.seen.includes(r))me.seen.push(r);G.cnt[r]=(G.cnt[r]||0)+1;
- if(has(me,'score')&&me.seen.length==6)win(G.cur);
- if(has(me,'s777')&&G.cnt[r]>=3)win(G.cur);
+ if(has(me,'score')&&me.seen.length==6)win(G.cur,'악보가 완성되었다!: 백도·도·개·걸·윷·모를 모두 냈습니다!');
+ if(has(me,'s777')&&G.cnt[r]>=3)win(G.cur,'777: 한 차례에 같은 결과가 3번 나왔습니다!');
  me.pcs.filter(q=>q.k=='p'&&!q.done).forEach(q=>move(q,1));
- if(me.pcs.some(q=>q.k=='q'&&nd(q)>0)&&++me.qt>=12)win(G.cur);
+ if(me.pcs.some(q=>q.k=='q'&&nd(q)>0)&&++me.qt>=12)win(G.cur,'시작 변환: 중전마마를 12번 던질 때까지 지켜냈습니다!');
  clean();
 }
 function clean(){
@@ -334,7 +334,7 @@ function clean(){
 function endTurn(){
  G.tg=0;const c0=G.pl[G.cur];c0.gr=0;if(G.duel&&G.cur==G.duel.t&&--G.duel.n<=0){const t=G.duel.t;G.duel=null;log('승부다! 세 차례 안에 완주하지 못해 탈락합니다.');elim(t)}
  if(c0.ld){c0.ld=0;log(`${c0.name}: 라스트 댄스 종료… 탈락!`);elim(G.cur)}
- if(c0.dom&&!c0.out&&--c0.dom.n<=0){const d=c0.dom;c0.dom=null;d.pcs.forEach(q=>q.fz=0);log(`${c0.name}: 🔒 영역 전개 성공!`);win(G.cur)}
+ if(c0.dom&&!c0.out&&--c0.dom.n<=0){const d=c0.dom;c0.dom=null;d.pcs.forEach(q=>q.fz=0);log(`${c0.name}: 🔒 영역 전개 성공!`);win(G.cur,'영역 전개: 지정한 말뭉치가 두 차례 동안 살아남았습니다!')}
  const echo=G.pl.some(p=>has(p,'echo')),r0=G.round;
  if(echo&&G.sub==0)G.sub=1;
  else{
@@ -343,7 +343,7 @@ function endTurn(){
   while(G.pl[G.cur].out||(G.pl[G.cur].skip&&G.pl[G.cur].skip--));
  }
  G.throws=1;G.pend=[];G.cnt={};G.sel=0;
- G.pl.forEach(p=>p.dku=p.cju=0);{const n=G.pl[G.cur];if(n.cult!=null&&!n.out){const z=n.pcs.filter(q=>q.k=='z'&&!q.done&&nd(q)>0).length;if(z){n.cult+=z;log(`${n.name}: 🔮 의식 코인 +${z} (${n.cult}/${CULT})`);if(n.cult>=CULT){log('🔮 마신 소환!');win(G.cur)}}}}if(G.fog&&--G.fog.t<=0)G.fog=null;G.pl[G.cur].pcs.forEach(q=>{if(q.k=='g'&&--q.ttl<0)q.k=0});
+ G.pl.forEach(p=>p.dku=p.cju=0);{const n=G.pl[G.cur];if(n.cult!=null&&!n.out){const z=n.pcs.filter(q=>q.k=='z'&&!q.done&&nd(q)>0).length;if(z){n.cult+=z;log(`${n.name}: 🔮 의식 코인 +${z} (${n.cult}/${CULT})`);if(n.cult>=CULT){log('🔮 마신 소환!');win(G.cur,'마신 소환: 의식 코인 '+CULT+'개를 모았습니다!')}}}}if(G.fog&&--G.fog.t<=0)G.fog=null;G.pl[G.cur].pcs.forEach(q=>{if(q.k=='g'&&--q.ttl<0)q.k=0});
  if(!G.over&&G.round!=r0&&(G.round==6||G.round==12))openPick(0);
 }
 
@@ -421,7 +421,7 @@ function fx(a,i){
  if(a.id=='party'){const oc=new Set(G.pl.flatMap(p=>p.pcs.filter(q=>!q.done&&nd(q)>0).map(nd)));Object.keys(P).map(Number).filter(n=>!oc.has(n)).sort(()=>Math.random()-.5).slice(0,10).forEach((n,k)=>G.pty.push({n,o:i,t:'kkkbbbffff'[k]}));log('🎉 함정 6개와 보상 4개가 설치되었습니다!')}
  if(a.id=='zeal'){me.cult=0;me.pcs.forEach(q=>{if(!q.done&&!q.k)q.k='z'})}
  if(a.id=='murder')G.pl.forEach(p=>{if(p.hp==null)p.hp=HP});
- if(a.id=='bronze'){me.bz=1;me.out=1;me.pcs.forEach(q=>{if(!q.done)q.path=[]});log(`🥉 ${me.name}: 3위 확정!`);const al=G.pl.filter(x=>!x.out);if(al.length==1)win(G.pl.indexOf(al[0]))}
+ if(a.id=='bronze'){me.bz=1;me.out=1;me.pcs.forEach(q=>{if(!q.done)q.path=[]});log(`🥉 ${me.name}: 3위 확정!`);const al=G.pl.filter(x=>!x.out);if(al.length==1)win(G.pl.indexOf(al[0]),'다른 플레이어가 모두 탈락했습니다!')}
  checkWin();
  if(a.id=='come')AUG.filter(b=>b.ph=='any'&&!['obj','fold','vote','who','det','del'].includes(b.id)&&!has(me,b.id)&&!BAN.includes(b.id)).sort(()=>Math.random()-.5).slice(0,3).forEach(b=>fx(b,i));
 }
@@ -685,7 +685,7 @@ function render(){
  }).join('');
  $('log').innerHTML=G.logs.join('<br>');
  let o='';
- if(G.over)o=`<div class="ov"><div class="box"><h2>🏆 ${(G.ws||[G.win]).map(j=>G.pl[j].name).join(' · ')} 승리!</h2>${G.pm?'<p>📋 계획대로! 기존 순위는 사라졌습니다.</p>':G.rk?'<p style="text-align:left">'+G.rk.map((j,r)=>`${r+1}위 ${G.pl[j].name}`).join('<br>')+'</p>':''}<button onclick="act('re')">다시 시작</button></div></div>`;
+ if(G.over)o=`<div class="ov"><div class="box"><h2>🏆 ${(G.ws||[G.win]).map(j=>G.pl[j].name).join(' · ')} 승리!</h2>${G.why?`<p><b>${G.why}</b></p>`:''}${G.pm?'<p>📋 계획대로! 기존 순위는 사라졌습니다.</p>':G.rk?'<p style="text-align:left">'+G.rk.map((j,r)=>`${r+1}위 ${G.pl[j].name}`).join('<br>')+'</p>':''}<button onclick="act('re')">다시 시작</button></div></div>`;
  else if(G.pick&&G.pick.k=='who'&&G.pick.who!=ME)o='<div class="ov" style="background:var(--bg)"><div class="box"><b>나 누구게? 모든 정보가 감춰졌습니다…</b></div></div>';
  else if(G.pick&&G.pick.who==ME)
   o=`<div class="ov"${G.pick.k=='who'?' style="background:var(--bg)"':''}><div class="box"><b>${G.pick.k=='who'?'':G.pl[G.pick.who].name+': '}${G.pick.t||'증강을 선택하세요'}</b>${G.pick.opts.map((a,k)=>`<button class="opt" onclick="act('pick',${k})">${a.n}<small>${a.d}</small></button>`).join('')}</div></div>`;
@@ -724,24 +724,23 @@ function join(){
 }
 // 증강 태그를 꾹 누르면 설명 표시
 (()=>{
- let tm=0,tip=null;
+ let tm=0,tip=null,sx=0,sy=0;
  const hide=()=>{if(tip){tip.remove();tip=null}};
+ const show=id=>{
+  const a=AN[id];if(!a)return;hide();
+  tip=document.createElement('div');tip.dataset.id=id;
+  tip.style.cssText='position:fixed;left:12px;right:12px;bottom:24px;max-width:520px;margin:auto;z-index:99;padding:12px 14px;border-radius:12px;background:var(--ink);color:var(--card);text-align:left;font-size:.9rem;box-shadow:0 4px 16px #0006';
+  tip.innerHTML='<b>'+a.n+'</b><br>'+a.d;
+  document.body.appendChild(tip);setTimeout(hide,5000);
+ };
+ const tagOf=e=>e.target.closest&&e.target.closest('.tag[data-id]');
  document.addEventListener('pointerdown',e=>{
-  const t=e.target.closest&&e.target.closest('.tag[data-id]');
-  if(tip&&!(t&&tip.dataset.id==t.dataset.id))hide();
-  clearTimeout(tm);if(!t)return;
-  const id=t.dataset.id;
-  tm=setTimeout(()=>{
-   const a=AN[id];if(!a)return;hide();
-   tip=document.createElement('div');tip.dataset.id=id;
-   tip.style.cssText='position:fixed;left:12px;right:12px;bottom:24px;max-width:520px;margin:auto;z-index:99;padding:12px 14px;border-radius:12px;background:var(--ink);color:var(--card);text-align:left;font-size:.9rem;box-shadow:0 4px 16px #0006';
-   tip.innerHTML='<b>'+a.n+'</b><br>'+a.d;
-   document.body.appendChild(tip);
-   setTimeout(hide,5000);
-  },400);
+  const t=tagOf(e);hide();clearTimeout(tm);if(!t)return;
+  sx=e.clientX;sy=e.clientY;const id=t.dataset.id;tm=setTimeout(()=>show(id),350);
  });
- ['pointerup','pointercancel','pointermove'].forEach(ev=>document.addEventListener(ev,()=>clearTimeout(tm)));
- document.addEventListener('contextmenu',e=>{if(e.target.closest&&e.target.closest('.tag'))e.preventDefault()});
+ document.addEventListener('pointermove',e=>{if(Math.hypot(e.clientX-sx,e.clientY-sy)>15)clearTimeout(tm)});
+ ['pointerup','pointercancel'].forEach(ev=>document.addEventListener(ev,()=>clearTimeout(tm)));
+ document.addEventListener('contextmenu',e=>{const t=tagOf(e);if(t){e.preventDefault();show(t.dataset.id)}});
 })();
 lobby();
 </script>
