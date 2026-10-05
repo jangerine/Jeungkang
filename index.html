@@ -255,15 +255,15 @@ function move(pc,r,to){
 function checkWin(){
  G.pl.forEach((p,i)=>{if(p.dom&&!p.out&&!G.over&&p.dom.pcs.some(q=>!q.done&&!q.path.length)){const d=p.dom;p.dom=null;d.pcs.forEach(q=>q.fz=0);log(`${p.name}: 영역 전개 실패… 탈락!`);elim(i)}});
  const gs=G.pl.flatMap((p,j)=>p.pcs.filter(q=>!q.done&&nd(q)>0&&grp(q)[0]===q).map(()=>j));if(gs.length>1)G.multi=1;
- G.pl.forEach((p,i)=>{if(!G.over&&!p.out&&has(p,'solo')&&G.multi&&gs.length==1&&gs[0]==i)win(i,'천상천하 유아독존: 판 위에 말뭉치가 나 하나뿐입니다!')});
+ G.pl.forEach((p,i)=>{if(!G.over&&!p.out&&!p.nw&&has(p,'solo')&&G.multi&&gs.length==1&&gs[0]==i)win(i,'천상천하 유아독존: 판 위에 말뭉치가 나 하나뿐입니다!')});
  if(G.duel&&!G.over&&G.pl[G.duel.t].pcs.filter(q=>q.done).length>G.duel.d){const d=G.duel;G.duel=null;log('승부다! 지목된 플레이어가 완주해 신청자가 탈락합니다.');elim(d.o)}
  G.pl.forEach((p,i)=>{
   if(G.over)return;
-  {const w=!p.out&&(p.pcs.every(q=>q.done)?'말을 모두 완주시켰습니다!':has(p,'purge')&&p.kills>=3?'무신정변: 적 말을 3개 이상 죽였습니다!':has(p,'cow')&&p.back>=2?'소 뒷걸음질: 백도로 말을 2번 잡았습니다!':0);if(w)win(i,w)}
-  if(!G.over&&!p.out&&((has(p,'lover')&&G.pl.some(q=>has(q,'cat')))||(has(p,'lone')&&p.by&&G.pl.every((q,j)=>j==i||p.by.includes(j)))||(has(p,'sa')&&(Object.values(p.pcs.filter(q=>!q.done&&nd(q)>0).reduce((o,q)=>(o[nd(q)]=(o[nd(q)]||0)+1,o),{})).some(c=>c>=4)||LN.some(L=>L.some((_,k)=>k<L.length-3&&L.slice(k,k+4).every(m=>m&&p.pcs.some(q=>!q.done&&nd(q)==m))))))))win(i,has(p,'lover')&&G.pl.some(q=>has(q,'cat'))?'애묘인: 고양이를 선택한 플레이어가 있습니다!':has(p,'lone')&&p.by&&G.pl.every((q,j)=>j==i||p.by.includes(j))?'나만 친구 없어: 다른 모든 플레이어가 내 말을 잡았습니다!':'사목: 일직선 네 칸(또는 네 말 업기)을 차지했습니다!');
+  {const w=!p.out&&!p.nw&&(p.pcs.every(q=>q.done)?'말을 모두 완주시켰습니다!':has(p,'purge')&&p.kills>=3?'무신정변: 적 말을 3개 이상 죽였습니다!':has(p,'cow')&&p.back>=2?'소 뒷걸음질: 백도로 말을 2번 잡았습니다!':0);if(w)win(i,w)}
+  if(!G.over&&!p.out&&!p.nw&&((has(p,'lover')&&G.pl.some(q=>has(q,'cat')))||(has(p,'lone')&&p.by&&G.pl.every((q,j)=>j==i||p.by.includes(j)))||(has(p,'sa')&&(Object.values(p.pcs.filter(q=>!q.done&&nd(q)>0).reduce((o,q)=>(o[nd(q)]=(o[nd(q)]||0)+1,o),{})).some(c=>c>=4)||LN.some(L=>L.some((_,k)=>k<L.length-3&&L.slice(k,k+4).every(m=>m&&p.pcs.some(q=>!q.done&&nd(q)==m))))))))win(i,has(p,'lover')&&G.pl.some(q=>has(q,'cat'))?'애묘인: 고양이를 선택한 플레이어가 있습니다!':has(p,'lone')&&p.by&&G.pl.every((q,j)=>j==i||p.by.includes(j))?'나만 친구 없어: 다른 모든 플레이어가 내 말을 잡았습니다!':'사목: 일직선 네 칸(또는 네 말 업기)을 차지했습니다!');
  });
 }
-function win(i,w){const c=G.pl.find(p=>p.ch.cxl);if(c){c.ch.cxl=0;log(`${c.name}: 취~소! 승리가 취소되었습니다.`);return}const R=ranks(i),m=G.pl.findIndex(p=>p.plan&&!p.out&&p.plan.every((x,r)=>R[r]==x));G.over=1;G.why=m>=0?'계획대로: 최종 순위를 모두 맞췄습니다!':w||'';if(m>=0){G.win=m;G.ws=[m];G.pm=1;log('📋 계획대로!')}else{G.win=i;G.ws=[i,...G.pl.flatMap((p,j)=>j!=i&&p.ally==i?[j]:[])];G.rk=R}}
+function win(i,w){const c=G.pl.find(p=>p.ch.cxl);if(c){c.ch.cxl=0;G.pl[i].nw=1;log(`${c.name}: 취~소! 승리가 취소되었습니다.`);return}const R=ranks(i),m=G.pl.findIndex(p=>p.plan&&!p.out&&p.plan.every((x,r)=>R[r]==x));G.over=1;G.why=m>=0?'계획대로: 최종 순위를 모두 맞췄습니다!':w||'';if(m>=0){G.win=m;G.ws=[m];G.pm=1;log('📋 계획대로!')}else{G.win=i;G.ws=[i,...G.pl.flatMap((p,j)=>j!=i&&p.ally==i?[j]:[])];G.rk=R}}
 
 function facesFor(r){
  if(r==5)return[0,0,0,0];
@@ -332,6 +332,8 @@ function clean(){
  if(!G.pend.length)endTurn();
 }
 function endTurn(){
+ {const sg=JSON.stringify(G.pl.map(p=>p.pcs.map(q=>[q.path,q.done])));if(sg==G.sg)G.idle=(G.idle||0)+1;else{G.sg=sg;G.idle=0}
+  if(G.idle>=G.pl.length*4&&!G.over){G.idle=0;log('교착 상태!');win(ranks(-1)[0],'교착 상태: 아무도 말을 움직일 수 없어 진행도가 가장 높은 플레이어가 승리합니다!')}}
  G.tg=0;const c0=G.pl[G.cur];c0.gr=0;if(G.duel&&G.cur==G.duel.t&&--G.duel.n<=0){const t=G.duel.t;G.duel=null;log('승부다! 세 차례 안에 완주하지 못해 탈락합니다.');elim(t)}
  if(c0.ld){c0.ld=0;log(`${c0.name}: 라스트 댄스 종료… 탈락!`);elim(G.cur)}
  if(c0.dom&&!c0.out&&--c0.dom.n<=0){const d=c0.dom;c0.dom=null;d.pcs.forEach(q=>q.fz=0);log(`${c0.name}: 🔒 영역 전개 성공!`);win(G.cur,'영역 전개: 지정한 말뭉치가 두 차례 동안 살아남았습니다!')}
