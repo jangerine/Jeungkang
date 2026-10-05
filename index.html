@@ -87,7 +87,7 @@ const AUG=[
 ['rev','천마군림보 - 달걸음','내 모든 말이 반대 방향으로 이동합니다.','any'],
 ['sac','희생','1회, 판 위의 가장 뒤쪽 말 1개를 죽이고 나머지 말에 보호막을 씌웁니다.','any'],
 ['three','3단 합체 필살기!!!','1회, 차례 소모. 말 3개 이상인 말뭉치를 눌러 그 외 내 말을 모두 죽입니다.','any'],
-['leech','거머리','다음 플레이어에게 대기 말 1개를 줍니다. 그 플레이어가 이기면 같이 승리합니다.','any'],
+['leech','거머리','숙주 1명을 직접 고르고 대기 말 1개를 줍니다. 숙주가 이기면 같이 승리하고, 탈락하면 같이 탈락합니다.','any'],
 ['sa','사목','내 말이 일직선으로 연속된 네 칸을 차지하면 승리합니다.','any'],
 ['jin','자진모리 장단','윷 6개를 던질 때마다 개를 얻습니다.','any'],
 ['trade','등가교환','대기 중인 내 말 1개를 제거하고 시작합니다.','s'],
@@ -170,7 +170,7 @@ function dest(pc,r){const o=G.pl[pc.o];if(has(o,'rev'))r=-r;if(o.ld&&r>0)r*=2;re
 const foes=(pi,d)=>G.pl.flatMap((p,j)=>j==pi?[]:p.pcs.filter(q=>!q.done&&nd(q)==d));
 const nxt=i=>{let j=i;do j=(j+1)%G.pl.length;while(G.pl[j].out&&j!=i);return j};
 const QP=[1,2,3,4,5,20,21,22],SYM={v:'선',d:'도',p:'폰',m:'마',g:'김',q:'后',c:'포',z:'광'};
-function elim(j){const p=G.pl[j];p.out=1;p.eo=(G.eo=(G.eo||0)+1);p.pcs.forEach(q=>q.path=[]);log(`${p.name} 탈락!`);const al=G.pl.filter(x=>!x.out);if(al.length==1)win(G.pl.indexOf(al[0]),'다른 플레이어가 모두 탈락했습니다!')}
+function elim(j){const p=G.pl[j];p.out=1;p.eo=(G.eo=(G.eo||0)+1);p.pcs.forEach(q=>q.path=[]);log(`${p.name} 탈락!`);G.pl.forEach((q,k)=>{if(q.ally==j&&has(q,'leech')&&!q.out&&G.pl.some(x=>!x.out&&x!==q)){log(`🪱 ${q.name}: 숙주와 함께 탈락!`);elim(k)}});const al=G.pl.filter(x=>!x.out);if(!G.over&&al.length==1)win(G.pl.indexOf(al[0]),'다른 플레이어가 모두 탈락했습니다!')}
 function conv(me,k){const q=me.pcs.find(q=>!q.done&&!q.k&&nd(q)<0)||me.pcs.find(q=>!q.done&&!q.k);if(q)q.k=k;return q}
 const LN=[[0,1,2,3,4,5],[5,6,7,8,9,10],[10,11,12,13,14,15],[15,16,17,18,19,0],[5,20,21,22,23,24,15],[10,25,26,22,27,28,0]];
 const occ=n=>G.pl.some(p=>p.pcs.some(q=>!q.done&&nd(q)==n));
@@ -381,6 +381,7 @@ function choose(a){
  if(k=='fold'){fold(+a.id[1]);return nextPick(i)}
  if(k=='vote')return voteNext(i,[...pk.x.vs,[pk.who,+a.id.slice(1)]]);
  if(k=='who'){const p=G.pl[pk.who];if(a.id=='C'+pk.who)log(`${p.name}: 색을 맞췄습니다!`);else{p.skip=(p.skip||0)+1;log(`${p.name}: 색을 못 맞췄습니다! 한 차례 쉽니다.`)}return whoNext(i,pk.x.rest)}
+ if(k=='leech'){const me=G.pl[i],t=+a.id.slice(1),w=me.pcs.findIndex(q=>!q.done&&nd(q)<0);if(w>=0&&me.pcs.length>1){me.pcs.splice(w,1);G.pl[t].pcs.push(mk(t))}me.ally=t;log(`🪱 ${me.name}: ${G.pl[t].name}를 숙주로 삼았습니다!`);return nextPick(i)}
  if(k=='plan')return planNext(i,[...pk.x.pl,+a.id.slice(1)]);
  if(k=='del'){G.pl[i].dv=a.id;return nextPick(i)}
  if(k=='det'){G.pk.filter(e=>e[1]==a.id).forEach(([j])=>{const p=G.pl[j];p.aug=p.aug.filter(x=>x!=a.id);delete p.ch[a.id]});G.nul.push(a.id);log(`🔎 명탐정: ${a.n} 무효화!`);return nextPick(i)}
@@ -390,6 +391,7 @@ function choose(a){
  if(a.id=='vote')return voteNext(i,[]);
  if(a.id=='who')return whoNext(i,G.pl.map((p,j)=>j).filter(j=>j!=i&&!G.pl[j].out));
  if(a.id=='plan')return planNext(i,[]);
+ if(a.id=='leech'){const o=plOpts([i]);if(o.length)return ask('leech',i,i,'숙주를 고르세요',o,{})}
  if(a.id=='det')return ask('det',i,i,'무효화할 증강을 고르세요',AUG.filter(x=>x.id!='det'&&(x.ph=='any'||x.ph==ph)).map(x=>({id:x.id,n:x.n,d:x.d})));
  if(a.id=='del'){const np=ph=='s'?'m':'e';return ask('del',i,i,'다음 선택에 반드시 나올 증강을 고르세요',AUG.filter(x=>x.id!='del'&&(x.ph=='any'||x.ph==np)&&!has(G.pl[i],x.id)).map(x=>({id:x.id,n:x.n,d:x.d})))}
  nextPick(i);
@@ -417,7 +419,7 @@ function fx(a,i){
  if(a.id=='queen'){const q=conv(me,'q');if(q){q.path=[...QP];me.ql=1;me.qt=0}}
  if(a.id=='sg'){G.pl.forEach(p=>p.pcs=p.pcs.slice(0,2));me.pcs[0].path=[1];me.pcs[1].path=[1,2]}
  if(a.id=='bear')me.garlic=Object.keys(P).sort(()=>Math.random()-.5).slice(0,3).map(Number);
- if(a.id=='trade'||a.id=='leech'){const k=me.pcs.findIndex(q=>!q.done&&nd(q)<0);if(k>=0&&me.pcs.length>1){me.pcs.splice(k,1);if(a.id=='leech'){const t=nxt(i);G.pl[t].pcs.push(mk(t));me.ally=t}}}
+ if(a.id=='trade'){const k=me.pcs.findIndex(q=>!q.done&&nd(q)<0);if(k>=0&&me.pcs.length>1)me.pcs.splice(k,1)}
  if(a.id=='lone')me.by=[];
  if(a.id=='duel'){const t=nxt(i);if(t!=i&&!G.pl[t].out){G.duel={o:i,t,n:3,d:G.pl[t].pcs.filter(q=>q.done).length};log(`${me.name}: 승부다! ${G.pl[t].name}를 지목했습니다.`)}}
  if(a.id=='party'){const oc=new Set(G.pl.flatMap(p=>p.pcs.filter(q=>!q.done&&nd(q)>0).map(nd)));Object.keys(P).map(Number).filter(n=>!oc.has(n)).sort(()=>Math.random()-.5).slice(0,10).forEach((n,k)=>G.pty.push({n,o:i,t:'kkkbbbffff'[k]}));log('🎉 함정 6개와 보상 4개가 설치되었습니다!')}
@@ -425,7 +427,7 @@ function fx(a,i){
  if(a.id=='murder')G.pl.forEach(p=>{if(p.hp==null)p.hp=HP});
  if(a.id=='bronze'){me.bz=1;me.out=1;me.pcs.forEach(q=>{if(!q.done)q.path=[]});log(`🥉 ${me.name}: 3위 확정!`);const al=G.pl.filter(x=>!x.out);if(al.length==1)win(G.pl.indexOf(al[0]),'다른 플레이어가 모두 탈락했습니다!')}
  checkWin();
- if(a.id=='come')AUG.filter(b=>b.ph=='any'&&!['obj','fold','vote','who','det','del'].includes(b.id)&&!has(me,b.id)&&!BAN.includes(b.id)).sort(()=>Math.random()-.5).slice(0,3).forEach(b=>fx(b,i));
+ if(a.id=='come')AUG.filter(b=>b.ph=='any'&&!['obj','fold','vote','who','det','del','leech'].includes(b.id)&&!has(me,b.id)&&!BAN.includes(b.id)).sort(()=>Math.random()-.5).slice(0,3).forEach(b=>fx(b,i));
 }
 
 // 입력
